@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Clone</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: skyblue; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            flex-direction: column; 
+        }
+        canvas { background: lightblue; }
+        #restartBtn {
+            display: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 20px;
+            cursor: pointer;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #message, #startMessage {
+            display: none;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: black;
+        }
+        #startMessage {
+            display: block;
+            position: absolute;
+            top: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="startMessage">Get 10 points in Level 1!</div>
+    <canvas id="gameCanvas"></canvas>
+    <button id="restartBtn">Restart</button>
+    <div id="message">Thanks for playing! Wait for updates coming soon.</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const restartBtn = document.getElementById("restartBtn");
+        const message = document.getElementById("message");
+        const startMessage = document.getElementById("startMessage");
+        
+        canvas.width = 400;
+        canvas.height = 600;
+
+        let bird, pipes, frame, gameOver, score, totalPipes;
+
+        function initGame() {
+            startMessage.style.display = "block"; // Show start message
+            setTimeout(() => {
+                startMessage.style.display = "none"; // Hide after 3 seconds
+                startPlaying(); // Start game after hiding message
+            }, 3000);
+        }
+
+        function startPlaying() {
+            bird = { x: 50, y: 300, width: 30, height: 30, dy: 0, gravity: 0.6, lift: -10 };
+            pipes = [];
+            frame = 0;
+            gameOver = false;
+            score = 0;
+            totalPipes = 0; // Track number of pipes created
+            restartBtn.style.display = "none";
+            message.style.display = "none";
+            gameLoop();
+        }
+
+        function drawBird() {
+            ctx.fillStyle = "yellow";
+            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+        }
+
+        function updateBird() {
+            bird.dy += bird.gravity;
+            bird.y += bird.dy;
+
+            // Prevent bird from going out of bounds
+            if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+                gameOver = true;
+            }
+        }
+
+        function jump() {
+            if (!gameOver) bird.dy = bird.lift;
+        }
+
+        window.addEventListener("keydown", (e) => { if (e.code === "Space") jump(); });
+        window.addEventListener("click", jump);
+
+        function drawPipes() {
+            ctx.fillStyle = "green";
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+                ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
+            });
+        }
+
+        function updatePipes() {
+            if (frame % 100 === 0 && totalPipes < 10) { // Limit to 10 pipes
+                let gap = 150;
+                let topHeight = Math.random() * (canvas.height / 2);
+                pipes.push({ x: canvas.width, width: 50, top: topHeight, bottom: topHeight + gap });
+                totalPipes++; // Count new pipes
+            }
+            pipes.forEach((pipe, index) => {
+                pipe.x -= 2;
+                if (pipe.x + pipe.width < 0) pipes.splice(index, 1);
+
+                // Collision detection
+                if (
+                    bird.x + bird.width > pipe.x && 
+                    bird.x < pipe.x + pipe.width && 
+                    (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+                ) {
+                    gameOver = true;
+                }
+
+                // Score when passing a pipe
+                if (pipe.x + pipe.width === bird.x) score++;
+            });
+
+            // Check if all pipes are cleared
+            if (totalPipes === 10 && pipes.length === 0 && !gameOver) {
+                endGame();
+            }
+        }
+
+        function drawScore() {
+            ctx.fillStyle = "black";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, 20, 30);
+        }
+
+        function endGame() {
+            gameOver = true;
+            message.style.display = "block"; // Show final message
+        }
+
+        function gameLoop() {
+            if (gameOver) {
+                restartBtn.style.display = "block";
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBird();
+            updateBird();
+            drawPipes();
+            updatePipes();
+            drawScore();
+            frame++;
+            requestAnimationFrame(gameLoop);
+        }
+
+        restartBtn.addEventListener("click", startPlaying);
+        initGame();
+    </script>
+</body>
+</html>
